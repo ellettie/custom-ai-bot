@@ -87,3 +87,10 @@ venv/
 
 # VS Code
 .vscode/
+
+.devcontainer/
+.env.example
+.github/
+*.md
+LICENSE
+fly.toml
