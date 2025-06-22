@@ -20,7 +20,6 @@ class CUSTOM_AI_BOT(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         super().__init__(command_prefix="$", intents=intents)
-        self.name = "UMAKAS(Bot)"
         
     async def setup_hook(self):
         guild = discord.Object(id=GUILD_ID)
@@ -53,7 +52,7 @@ async def ask(ctx:discord.Interaction, text:str) -> None:
     await ctx.response.defer()
     response:str = await gemini.generate_text(text) # type: ignore
     header = f"**{ctx.user.display_name}**: {text}\n\n"
-    content = f"**{bot.name}**の回答:\n{response}"
+    content = f"**{bot.user.name}**の回答:\n{response}" #type: ignore
     chunks = await myutils.split_message(header + content)
     for chunk in chunks:
         await ctx.followup.send(content=chunk)
