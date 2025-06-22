@@ -1,0 +1,8 @@
+app = 'custom-ai-bot'
+primary_region = 'nrt'
+
+[processes]
+  app = "python run.py"
+
+[[vm]]
+  size = 'shared-cpu-1x'
