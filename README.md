@@ -65,16 +65,16 @@
 - `IMAGE_MODEL`：（任意）画像生成モデル名（例: imagen-3.0-generate-001）
 
 ### 4. Dockerでのローカル実行
+1. リポジトリのClone
 ```bash
 git clone https://github.com/ellettie/custom-ai-bot
 cd custom-ai-bot
+```
+2. .env.exampleに従い.envをプロジェクトルートに配置
+3. イメージをbuildしコンテナを作成、起動
+```bash
 docker build -t custom_ai_bot .
-docker run -e TOKEN=your_discord_token \
-           -e GUILD_ID=your_guild_id \
-           -e GEMINI_API_KEY=your_gemini_api_key \
-           -e MODEL=gemini-2.0-flash-exp \
-           -e IMAGE_MODEL=imagen-3.0-generate-001 \
-           custom_ai_bot
+docker run --env-file .env custom_ai_bot
 ```
 
 ### 5. GitHub Actions + fly.io でのデプロイ
