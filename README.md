@@ -1,4 +1,4 @@
-# custom_ai_bot
+# custom-ai-bot
 
 ## 概要
 このプロジェクトは、Google Gemini APIを活用したAI Discordボットです。テキスト質問や画像生成、ファイル（画像・音声）を使ったAI応答が可能です。  
