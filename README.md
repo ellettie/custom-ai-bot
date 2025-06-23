@@ -133,4 +133,4 @@ Botがサーバーに追加され、正常に起動すると、以下のスラ�
 - `.github/workflows/fly-deploy.yml`：GitHub ActionsによるFly.io自動デプロイ
 
 ## ライセンス
-このプロジェクト自体はMITライセンスです（`LICENSE`ファイル参照）。
+このプロジェクト自体はMITライセンスです（[LICENSE](./LICENSE)ファイル参照）。
