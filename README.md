@@ -2,7 +2,7 @@
 
 ## 概要
 このプロジェクトは、Google Gemini APIを活用したAI Discordボットです。テキスト質問や画像生成、ファイル（画像・音声）を使ったAI応答が可能です。  
-![Image](https://github.com/user-attachments/assets/ef70531c-fdba-4d22-8063-478df67b4571)
+![Image](https://github.com/user-attachments/assets/ef7d2a7a-ba23-4c94-bf1b-737bde73758e)
 
 ## 主な機能
 - `/ask`：AIにテキストで質問できます（画像・音声ファイルは主要な形式に対応）[Grounding with Google Search](https://ai.google.dev/gemini-api/docs/google-search?hl=ja)による検索と[URL Context](https://ai.google.dev/gemini-api/docs/url-context?hl=ja)によるWebへのアクセスに対応
