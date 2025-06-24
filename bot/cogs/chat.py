@@ -1,5 +1,3 @@
-# bot/cogs/chat.py
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -16,35 +14,43 @@ from ..config import Config
 logger = logging.getLogger(__name__)
 
 # --- 返信用のUIコンポーネント ---
-
-class ReplyView(discord.ui.View):
-    def __init__(self, *, user_prompt: str, full_ai_response: str):
-        super().__init__(timeout=3600.0)
-        self.user_prompt = user_prompt  # ユーザーの質問を保持
-        self.full_ai_response = full_ai_response
-
-    @discord.ui.button(label='返信する', style=discord.ButtonStyle.primary, emoji='💬')
-    async def reply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+class ReplyButton(discord.ui.Button):
+    def __init__(self, *, history: list[dict]):
+        super().__init__(
+            label = "返信する",
+            emoji = "💬",
+            style = discord.ButtonStyle.primary
+        )
+        self.history = history
+        
+    async def callback(self, interaction: discord.Interaction):
         modal = ReplyModal(
             original_itx=interaction,
-            user_prompt=self.user_prompt,  # Modalにユーザーの質問を渡す
-            full_ai_response=self.full_ai_response
+            history=self.history
         )
         await interaction.response.send_modal(modal)
 
+class ReplyView(discord.ui.View):
+    def __init__(self, *, button: ReplyButton):
+        super().__init__(timeout=Config.BOTTON_TIMEOUT)
+        self.button = button
+        self.add_item(button)
+        self.message: Optional[discord.WebhookMessage] = None
+        
     async def on_timeout(self):
-        for item in self.children:
-            item.disabled = True # type: ignore
-        if self.message: # type: ignore
-            await self.message.edit(view=self) # type: ignore
+        self.button.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=None)
+            except Exception as e:
+                print(f"メッセージ編集エラー: {e}")
 
 
 class ReplyModal(discord.ui.Modal, title='AIに返信'):
-    def __init__(self, original_itx: discord.Interaction, user_prompt: str, full_ai_response: str):
+    def __init__(self, original_itx: discord.Interaction, history: list[dict]):
         super().__init__()
         self.original_itx = original_itx
-        self.user_prompt = user_prompt  # ユーザーの質問を保持
-        self.full_ai_response = full_ai_response
+        self.history = history
         self.cog: "ChatCog" = original_itx.client.get_cog("ChatCog") # type: ignore
 
     reply_text = discord.ui.TextInput(
@@ -54,18 +60,13 @@ class ReplyModal(discord.ui.Modal, title='AIに返信'):
 
     async def on_submit(self, ctx: discord.Interaction):
         await ctx.response.defer(thinking=True)
-        try:
-            # ★ 修正点: message.contentの解析をやめ、保持していた情報を直接使う
-            original_content: str = self.user_prompt
-            original_answer: str = self.full_ai_response
-            history = [{"user": original_content, "ai": original_answer}]
-            
+        try:           
             user_message = self.reply_text.value
-            response, input_token, output_token = await gemini.generate_text([{"text": user_message}], history)
+            response, input_token, output_token = await gemini.generate_text([{"text": f"{ctx.user.display_name}: {user_message}"}], self.history)
             logger.info(f"{ctx.id}: {{input_token: {input_token}, output_token: {output_token}}}")
             
             # ★ 修正点: 次の応答のために、新しいプロンプト(user_message)を渡す
-            await self.cog._send_response(ctx, user_prompt=user_message, response=response)
+            await self.cog._send_response(ctx, user_prompt=user_message, response=response, history=self.history)
 
         except gemini.errors.APIError as e:
             await ctx.followup.send(embed=myutils.get_error_embed(gemini.get_error_message(e)))
@@ -82,12 +83,16 @@ class ChatCog(commands.Cog):
         self.bot = bot
 
     # ★ 修正点: headerの代わりにuser_promptを受け取るように変更
-    async def _send_response(self, ctx: discord.Interaction, user_prompt: str, response: str, view_tokens: bool = False,
+    async def _send_response(self, ctx: discord.Interaction, user_prompt: str, response: str, history: list[dict]=[], view_tokens: bool = False,
                              input_token: Optional[int] = None, output_token: Optional[int] = None,
                              file_to_attach: Optional[discord.File] = None):
         """応答を分割して送信するためのヘルパーメソッド"""
         # ヘッダーはこのメソッド内で生成する
         header = f"**{ctx.user.display_name}**: {user_prompt}\n\n"
+        history.insert(0, {"user": header[:-2], "ai": response})
+        if len(history) > 10:
+            history.pop()
+        logger.debug(history)
         
         webhook_message: Optional[discord.WebhookMessage] = None
         if file_to_attach:
@@ -102,16 +107,19 @@ class ChatCog(commands.Cog):
                 embed.set_footer(text=f"input_token: {input_token} output_token: {output_token}")
 
             # ★ 修正点: user_promptもViewに渡す
-            view = ReplyView(user_prompt=user_prompt, full_ai_response=response) if is_last_chunk else discord.utils.MISSING
+            view = ReplyView(button=ReplyButton(history=history)) if is_last_chunk else discord.utils.MISSING
 
             if i == 0:
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar) # type: ignore
                 if webhook_message:
-                    await webhook_message.edit(content=header, embed=embed, view=view)
+                    msg = await webhook_message.edit(content=header, embed=embed, view=view)
+                    view.message = msg
                 else:
-                    await ctx.followup.send(content=header, embed=embed, view=view)
+                    msg = await ctx.followup.send(content=header, embed=embed, view=view)
+                    view.message = msg
             else:
-                await ctx.followup.send(embed=embed, view=view)
+                msg= await ctx.followup.send(embed=embed, view=view)
+                view.message = msg
 
     @app_commands.command(name="ask", description="AIに質問する")
     @describe(text="質問内容", file="ファイルを添付 (画像/音声)", view_tokens="入出力トークンを表示")
@@ -120,7 +128,7 @@ class ChatCog(commands.Cog):
             return await ctx.response.send_message(embed=myutils.get_error_embed("質問が長すぎます"), ephemeral=True)
         
         await ctx.response.defer(thinking=True)
-        parts: list[dict] = [{"text": text}]
+        parts: list[dict] = [{"text": f"**{ctx.user.display_name}**: {text}"}]
         file_to_resend: Optional[discord.File] = None
 
         if file:
@@ -173,7 +181,6 @@ class ChatCog(commands.Cog):
         except Exception as e:
             await ctx.followup.send(embed=myutils.get_error_embed("エラーが発生しました"))
             logger.exception(f"{ctx.id} : /image raised an Exception. {e}")
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ChatCog(bot))

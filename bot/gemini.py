@@ -8,7 +8,7 @@ import mimetypes
 import tempfile
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-MODEL = os.environ.get("MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("GEMINI_API_KEY", "gemini-2.5-flash")
 IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "gemini-2.0-flash-preview-image-generation")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -64,7 +64,7 @@ async def generate_text(parts: list[dict], history=None):
     contents = [
         types.Content(
             role="user",
-            parts=part_objs
+            parts=part_objs,
         )
     ]
     if history is not None:
@@ -97,6 +97,10 @@ async def generate_text(parts: list[dict], history=None):
         # tools=[grounding_tool, url_context_tool],
         tools=[grounding_tool],
         response_mime_type="text/plain",
+        system_instruction=[
+            types.Part.from_text(text="""あなたは優秀なAIアシスタントです。回答は指定がない限り日本語でしてください。
+                                 ユーザの質問は以下のように構造化されています。<**ユーザの名前**>: <質問内容>""")
+        ],
     )
     response = await client.aio.models.generate_content(
         model=MODEL,
@@ -115,6 +119,9 @@ def add_citations(response) -> str:
         return text                
     supports = gm.grounding_supports
     chunks   = gm.grounding_chunks
+    
+    if chunks is None:
+        return text
 
     # Sort supports by end_index in descending order to avoid shifting issues when inserting.
     sorted_supports = sorted(supports, key=lambda s: s.segment.end_index, reverse=True)
