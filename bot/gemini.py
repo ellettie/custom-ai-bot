@@ -44,7 +44,7 @@ async def generate_image(prompt: str):
             break
     return image_path, text, input_token, output_token
 
-async def generate_text(parts: list[dict]):
+async def generate_text(parts: list[dict], history=None):
     """
     parts = [
         {"file_data": {"mime_type": file mime type, "data": file byte data}},
@@ -60,10 +60,33 @@ async def generate_text(parts: list[dict]):
                 mime_type=part["file_data"]["mime_type"],
                 data=part["file_data"]["data"]
             ))
-    contents = types.Content(
-        role="user",
-        parts=part_objs
-    )
+    
+    contents = [
+        types.Content(
+            role="user",
+            parts=part_objs
+        )
+    ]
+    if history is not None:
+        for chat in history:
+            contents.insert(
+                0,
+                types.Content(
+                    role="model",
+                    parts=[
+                        types.Part.from_text(text=chat["ai"])
+                    ]
+                )
+            )
+            contents.insert(
+                0,
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=chat["user"])
+                    ]
+                )
+            )
     grounding_tool = types.Tool(
         google_search=types.GoogleSearch()
     )
@@ -76,7 +99,7 @@ async def generate_text(parts: list[dict]):
     )
     response = await client.aio.models.generate_content(
         model=MODEL,
-        contents=contents,
+        contents=contents, # type: ignore
         config=generate_content_config,
     )
     text = add_citations(response)
