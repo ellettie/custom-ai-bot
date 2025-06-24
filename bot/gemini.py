@@ -94,7 +94,8 @@ async def generate_text(parts: list[dict], history=None):
         url_context=types.UrlContext()
     )
     generate_content_config = types.GenerateContentConfig(
-        tools=[grounding_tool, url_context_tool],
+        # tools=[grounding_tool, url_context_tool],
+        tools=[grounding_tool],
         response_mime_type="text/plain",
     )
     response = await client.aio.models.generate_content(
