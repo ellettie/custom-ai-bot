@@ -1,7 +1,6 @@
 from google import genai
 from google.genai import errors
 from google.genai import types
-from google.api_core.exceptions import ResourceExhausted
 import os
 from io import BytesIO
 from PIL import Image
@@ -33,6 +32,8 @@ async def generate_image(prompt: str):
             response_modalities=["TEXT", "IMAGE"],
         )
     )
+    input_token = getattr(response.usage_metadata, "prompt_token_count", None)
+    output_token = getattr(response.usage_metadata, "candidates_token_count", None)
     image_path = None
     text = ""
     for part in response.candidates[0].content.parts: # type: ignore
@@ -41,7 +42,7 @@ async def generate_image(prompt: str):
         if part.inline_data and part.inline_data.data:
             image_path = save_image_to_temp(part.inline_data)
             break
-    return image_path, text
+    return image_path, text, input_token, output_token
 
 async def generate_text(parts: list[dict]):
     """
@@ -79,7 +80,9 @@ async def generate_text(parts: list[dict]):
         config=generate_content_config,
     )
     text = add_citations(response)
-    return text or "エラーが発生しました"
+    input_token = getattr(response.usage_metadata, "prompt_token_count", None)
+    output_token = getattr(response.usage_metadata, "candidates_token_count", None)
+    return text or "エラーが発生しました", input_token, output_token
 
 def add_citations(response) -> str:
     text = response.text

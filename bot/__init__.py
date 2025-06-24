@@ -48,7 +48,8 @@ bot = CUSTOM_AI_BOT()
 )
 @describe(text="質問内容")
 @describe(file="ファイルを添付 画像ファイル 対応形式: PNG/JPEG/WEBP/HEIC/HEIF 音声ファイル 対応形式: WAV/MP3/AIFF/AAC/OGG Vorbis/FLAC")
-async def ask(ctx:discord.Interaction, text:str, file: Optional[discord.Attachment]=None) -> None:
+@describe(view_tokens="入出力トークンを表示")
+async def ask(ctx:discord.Interaction, text:str, file: Optional[discord.Attachment]=None, view_tokens: bool=False) -> None:
     if len(text) > Config.MAX_PROMPT_LEN:
         await ctx.response.defer(ephemeral=True, thinking=True)
         await ctx.followup.send(embed=myutils.get_error_embed("質問が長すぎます"))
@@ -67,14 +68,15 @@ async def ask(ctx:discord.Interaction, text:str, file: Optional[discord.Attachme
     else:
         await ctx.response.defer(thinking=True)
     try:
-        response: str = await gemini.generate_text(parts) # type: ignore
+        response, input_token, output_token = await gemini.generate_text(parts)
+        logger.info(f"{ctx.id}: {{input_token: {input_token}, output_token: {output_token}}}")
     except gemini.errors.APIError as e:
         await ctx.followup.send(embed=myutils.get_error_embed(gemini.get_error_message(e)))
-        logger.error(f"/ask raised an API error. {e}")
+        logger.error(f"{ctx.id} : /ask raised an API error. {e}")
         return
     except Exception as e:
         await ctx.followup.send(embed=myutils.get_error_embed("エラーが発生しました"))
-        logger.exception(f"/ask raised an Exception. {e}")
+        logger.exception(f"{ctx.id} : /ask raised an Exception. {e}")
         return
     header = f"**{ctx.user.display_name}**: {text}\n\n"
     chunks = await myutils.split_message(response)
@@ -83,6 +85,8 @@ async def ask(ctx:discord.Interaction, text:str, file: Optional[discord.Attachme
         file_msg = await ctx.followup.send(file=await file.to_file())
     for idx, chunk in enumerate(chunks):
         embed = discord.Embed(description=chunk, colour=Config.EMBED_SET["answer"]["colour"]) # type: ignore
+        if idx == len(chunks) -1 and view_tokens:
+            embed.set_footer(text=f"input_token: {input_token} output_token: {output_token}")
         if idx == 0:
             embed.set_author(
                 name=bot.user.name, # type: ignore
@@ -100,21 +104,23 @@ async def ask(ctx:discord.Interaction, text:str, file: Optional[discord.Attachme
     description="画像を生成"
 )
 @describe(prompt="生成する画像の説明")
-async def image(ctx: discord.Interaction, prompt: str):
+@describe(view_token="入出力トークンを表示する")
+async def image(ctx: discord.Interaction, prompt: str, view_token: bool=False):
     if len(prompt) > Config.MAX_PROMPT_LEN:
         await ctx.response.defer(ephemeral=True, thinking=True)
         await ctx.followup.send(embed=myutils.get_error_embed("プロンプトが長すぎます"))
         return
     await ctx.response.defer(thinking=True)
     try:
-        path, text = await gemini.generate_image(prompt)
+        path, text, input_token, output_token = await gemini.generate_image(prompt)
+        logger.info(f"{ctx.id}: {{input_token: {input_token}, output_token: {output_token}}}")
     except gemini.errors.APIError as e:
         await ctx.followup.send(embed=myutils.get_error_embed(gemini.get_error_message(e)))
-        logger.error(f"/image raised an API error. {e}")
+        logger.error(f"{ctx.id} : /image raised an API error. {e}")
         return
     except Exception as e:
         await ctx.followup.send(embed=myutils.get_error_embed("エラーが発生しました"))
-        logger.exception(f"/image raised an Exception. {e}")
+        logger.exception(f"{ctx.id} : /image raised an Exception. {e}")
         return
     if path is not None:
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -122,6 +128,8 @@ async def image(ctx: discord.Interaction, prompt: str):
         file = discord.File(path, filename)
         embed = discord.Embed(title=prompt, description=text, colour=Config.EMBED_SET["image"]["colour"])
         embed.set_image(url=f"attachment://{filename}")
+        if view_token:
+            embed.set_footer(text=f"input_token: {input_token} output_token: {output_token}")
         await ctx.followup.send(embed=embed, file=file)
         os.remove(path)
     else:
@@ -162,5 +170,5 @@ async def help(ctx: discord.Interaction):
 async def on_ready() -> None:
     print("Bot is ready!")
     
-def run():
-    bot.run(Config.TOKEN, log_handler=handler, log_level=logging.DEBUG) # type: ignore
+def run(level=logging.WARNING):
+    bot.run(Config.TOKEN, log_handler=handler, log_level=level) # type: ignore
