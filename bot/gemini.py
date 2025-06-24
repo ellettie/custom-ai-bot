@@ -1,5 +1,7 @@
 from google import genai
+from google.genai import errors
 from google.genai import types
+from google.api_core.exceptions import ResourceExhausted
 import os
 from io import BytesIO
 from PIL import Image
@@ -104,3 +106,13 @@ def add_citations(response) -> str:
             text = text[:end_index] + citation_string + text[end_index:]
 
     return text
+
+def get_error_message(e: errors.APIError) -> str:
+    if e.code == 429:
+        desc = f"**{e.code}**\n\n{e.message}\nAPIレートリミットに達しました。しばらくお待ちください"
+    elif e.code == 503:
+        desc = f"**{e.code}**\n\n{e.message}\nAPIサービスが混雑しています。時間を置いて再度試してください"
+    else:
+        desc = f"**{e.code}**\n\n{e.message}"
+        
+    return desc

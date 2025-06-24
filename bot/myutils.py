@@ -1,3 +1,6 @@
+import discord
+from .config import Config
+
 async def split_message(text, max_length=1900):
     if len(text) <= max_length:
         return [text] 
@@ -33,3 +36,9 @@ async def split_message(text, max_length=1900):
         chunks.append(current_chunk.strip())
     
     return chunks
+
+def get_error_embed(description: str) -> discord.Embed:
+    return discord.Embed(
+        title=Config.EMBED_SET["error"]["title"], 
+        description=description, 
+        colour=Config.EMBED_SET["error"]["colour"])
