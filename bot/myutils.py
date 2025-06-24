@@ -1,7 +1,7 @@
 import discord
 from .config import Config
 
-async def split_message(text, max_length=1900):
+def split_message(text, max_length=1900):
     if len(text) <= max_length:
         return [text] 
     chunks = []
