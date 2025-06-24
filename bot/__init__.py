@@ -16,8 +16,14 @@ logger.setLevel(logging.DEBUG)
 # --- Botクラスの定義 ---
 class CUSTOM_AI_BOT(commands.Bot):
     def __init__(self):
-        intents = discord.Intents.default()
-        super().__init__(command_prefix="$", intents=intents)
+        intents = discord.Intents.none()
+        member_cache_flags = discord.MemberCacheFlags.none()
+        super().__init__(
+            command_prefix=None,  # type: ignore
+            intents=intents,
+            member_cache_flags=member_cache_flags,
+            max_messages=None
+            )
         self.guild_id = Config.GUILD_ID
 
     async def setup_hook(self):
