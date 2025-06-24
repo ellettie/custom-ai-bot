@@ -37,3 +37,4 @@ class Config:
         description=HELP_TEXT,
         colour=EMBED_SET["help"]["colour"],
     )
+    BOTTON_TIMEOUT = 21600.0
