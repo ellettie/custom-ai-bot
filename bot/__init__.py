@@ -4,14 +4,8 @@ import os
 import logging
 from .config import Config
 
-# --- ロガー設定 ---
+# --- ロガー取得 (ハンドラは run.py で設定) ---
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
-
 
 # --- Botクラスの定義 ---
 class CUSTOM_AI_BOT(commands.Bot):
@@ -23,7 +17,7 @@ class CUSTOM_AI_BOT(commands.Bot):
             intents=intents,
             member_cache_flags=member_cache_flags,
             max_messages=None
-            )
+        )
         self.guild_id = Config.GUILD_ID
 
     async def setup_hook(self):
@@ -62,8 +56,31 @@ bot = CUSTOM_AI_BOT()
 
 @bot.event
 async def on_ready() -> None:
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})") # type: ignore
+    print(r"""
+┌──────────────────────────────────────────────────────────────┐
+│ $$$$$$\  $$\   $$\  $$$$$$\ $$$$$$$$\  $$$$$$\  $$\      $$\ │
+│$$  __$$\ $$ |  $$ |$$  __$$\\__$$  __|$$  __$$\ $$$\    $$$ |│
+│$$ /  \__|$$ |  $$ |$$ /  \__|  $$ |   $$ /  $$ |$$$$\  $$$$ |│
+│$$ |      $$ |  $$ |\$$$$$$\    $$ |   $$ |  $$ |$$\$$\$$ $$ |│
+│$$ |      $$ |  $$ | \____$$\   $$ |   $$ |  $$ |$$ \$$$  $$ |│
+│$$ |  $$\ $$ |  $$ |$$\   $$ |  $$ |   $$ |  $$ |$$ |\$  /$$ |│
+│\$$$$$$  |\$$$$$$  |\$$$$$$  |  $$ |    $$$$$$  |$$ | \_/ $$ |│
+│ \______/  \______/  \______/   \__|    \______/ \__|     \__|│
+│                                                              │
+│                                                              │
+│                                                              │
+│ $$$$$$\  $$$$$$\       $$$$$$$\   $$$$$$\ $$$$$$$$\          │
+│$$  __$$\ \_$$  _|      $$  __$$\ $$  __$$\\__$$  __|         │
+│$$ /  $$ |  $$ |        $$ |  $$ |$$ /  $$ |  $$ |            │
+│$$$$$$$$ |  $$ |        $$$$$$$\ |$$ |  $$ |  $$ |            │
+│$$  __$$ |  $$ |        $$  __$$\ $$ |  $$ |  $$ |            │
+│$$ |  $$ |  $$ |        $$ |  $$ |$$ |  $$ |  $$ |            │
+│$$ |  $$ |$$$$$$\       $$$$$$$  | $$$$$$  |  $$ |            │
+│\__|  \__|\______|      \_______/  \______/   \__|            │
+└──────────────────────────────────────────────────────────────┘
+""")
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")  # type: ignore
     print("Bot is ready!")
 
 def run(level=logging.WARNING):
-    bot.run(Config.TOKEN, log_handler=handler, log_level=level) # type: ignore
+    bot.run(Config.TOKEN, log_level=level)  # type: ignore

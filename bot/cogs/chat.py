@@ -83,12 +83,14 @@ class ChatCog(commands.Cog):
         self.bot = bot
 
     # ★ 修正点: headerの代わりにuser_promptを受け取るように変更
-    async def _send_response(self, ctx: discord.Interaction, user_prompt: str, response: str, history: list[dict]=[], view_tokens: bool = False,
+    async def _send_response(self, ctx: discord.Interaction, user_prompt: str, response: str, history: Optional[list[dict]]=None, view_tokens: bool = False,
                              input_token: Optional[int] = None, output_token: Optional[int] = None,
                              file_to_attach: Optional[discord.File] = None):
         """応答を分割して送信するためのヘルパーメソッド"""
         # ヘッダーはこのメソッド内で生成する
         header = f"**{ctx.user.display_name}**: {user_prompt}\n\n"
+        if history is None:
+            history = []
         history.insert(0, {"user": header[:-2], "ai": response})
         if len(history) > 10:
             history.pop()
@@ -113,12 +115,11 @@ class ChatCog(commands.Cog):
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar) # type: ignore
                 if webhook_message:
                     msg = await webhook_message.edit(content=header, embed=embed, view=view)
-                    view.message = msg
                 else:
                     msg = await ctx.followup.send(content=header, embed=embed, view=view)
-                    view.message = msg
             else:
                 msg= await ctx.followup.send(embed=embed, view=view)
+            if is_last_chunk:
                 view.message = msg
 
     @app_commands.command(name="ask", description="AIに質問する")
