@@ -112,33 +112,30 @@ async def generate_text(parts: list[dict], history=None):
     return text or "エラーが発生しました", input_token, output_token
 
 def add_citations(response) -> str:
-    text = response.text
+    text = response.text.rstrip()
     gm = getattr(response.candidates[0], "grounding_metadata", None)
-    if not gm or not gm.grounding_supports:
-        return text                
-    supports = gm.grounding_supports
-    chunks   = gm.grounding_chunks
-    
-    if chunks is None:
+    if not gm or not gm.grounding_supports or gm.grounding_chunks is None:
         return text
 
-    # Sort supports by end_index in descending order to avoid shifting issues when inserting.
-    sorted_supports = sorted(supports, key=lambda s: s.segment.end_index, reverse=True)
+    seen, links = set(), []
+    for support in gm.grounding_supports:
+        for i in support.grounding_chunk_indices:
+            if i < len(gm.grounding_chunks):
+                uri = gm.grounding_chunks[i].web.uri
+                if uri not in seen:
+                    seen.add(uri)
+                    links.append(uri)
 
-    for support in sorted_supports:
-        end_index = support.segment.end_index
-        if support.grounding_chunk_indices:
-            # Create citation string like [1](link1)[2](link2)
-            citation_links = []
-            for i in support.grounding_chunk_indices:
-                if i < len(chunks):
-                    uri = chunks[i].web.uri
-                    citation_links.append(f"[{i + 1}]({uri})")
+    if not links:
+        return text
 
-            citation_string = ", ".join(citation_links)
-            text = text[:end_index] + citation_string + text[end_index:]
+    # [1](url) をコンマ区切りで並べる
+    footnotes = ", ".join(f"[{n}]({url})" for n, url in enumerate(links, 1))
 
-    return text
+    # 好きな見出しに変えて OK
+    separator = "\n\n**—— 参考リンク ——**\n"
+    return f"{text}{separator}{footnotes}"
+
 
 def get_error_message(e: errors.APIError) -> str:
     if e.code == 429:
