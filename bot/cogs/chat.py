@@ -26,7 +26,7 @@ class ReplyButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         modal = ReplyModal(
             original_itx=interaction,
-            history=self.history
+            history=self.history.copy()
         )
         await interaction.response.send_modal(modal)
 
