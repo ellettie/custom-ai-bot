@@ -2,7 +2,10 @@ import discord
 from discord.ext import commands
 import os
 import logging
+import time
 from .config import Config
+from . import myutils
+from .spinner import Spinner
 
 # --- ロガー取得 (ハンドラは run.py で設定) ---
 logger = logging.getLogger(__name__)
@@ -18,6 +21,9 @@ class CUSTOM_AI_BOT(commands.Bot):
             member_cache_flags=member_cache_flags,
             max_messages=None
         )
+        self.spinner = Spinner()
+        self.spinner.start()
+        self.start_ts = time.perf_counter()
         self.guild_id = Config.GUILD_ID
 
     async def setup_hook(self):
@@ -56,30 +62,8 @@ bot = CUSTOM_AI_BOT()
 
 @bot.event
 async def on_ready() -> None:
-    print(r"""
-┌──────────────────────────────────────────────────────────────┐
-│ $$$$$$\  $$\   $$\  $$$$$$\ $$$$$$$$\  $$$$$$\  $$\      $$\ │
-│$$  __$$\ $$ |  $$ |$$  __$$\\__$$  __|$$  __$$\ $$$\    $$$ |│
-│$$ /  \__|$$ |  $$ |$$ /  \__|  $$ |   $$ /  $$ |$$$$\  $$$$ |│
-│$$ |      $$ |  $$ |\$$$$$$\    $$ |   $$ |  $$ |$$\$$\$$ $$ |│
-│$$ |      $$ |  $$ | \____$$\   $$ |   $$ |  $$ |$$ \$$$  $$ |│
-│$$ |  $$\ $$ |  $$ |$$\   $$ |  $$ |   $$ |  $$ |$$ |\$  /$$ |│
-│\$$$$$$  |\$$$$$$  |\$$$$$$  |  $$ |    $$$$$$  |$$ | \_/ $$ |│
-│ \______/  \______/  \______/   \__|    \______/ \__|     \__|│
-│                                                              │
-│                                                              │
-│                                                              │
-│ $$$$$$\  $$$$$$\       $$$$$$$\   $$$$$$\ $$$$$$$$\          │
-│$$  __$$\ \_$$  _|      $$  __$$\ $$  __$$\\__$$  __|         │
-│$$ /  $$ |  $$ |        $$ |  $$ |$$ /  $$ |  $$ |            │
-│$$$$$$$$ |  $$ |        $$$$$$$\ |$$ |  $$ |  $$ |            │
-│$$  __$$ |  $$ |        $$  __$$\ $$ |  $$ |  $$ |            │
-│$$ |  $$ |  $$ |        $$ |  $$ |$$ |  $$ |  $$ |            │
-│$$ |  $$ |$$$$$$\       $$$$$$$  | $$$$$$  |  $$ |            │
-│\__|  \__|\______|      \_______/  \______/   \__|            │
-└──────────────────────────────────────────────────────────────┘
-""")
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})")  # type: ignore
+    bot.spinner.stop()
+    myutils.print_banner(bot, bot.start_ts)
     print("Bot is ready!")
 
 def run(level=logging.WARNING):
