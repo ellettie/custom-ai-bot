@@ -8,7 +8,7 @@ import mimetypes
 import tempfile
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-MODEL = os.environ.get("GEMINI_API_KEY", "gemini-2.5-flash")
+MODEL = os.environ.get("MODEL", "gemini-2.5-flash")
 IMAGE_MODEL = os.environ.get("IMAGE_MODEL", "gemini-2.0-flash-preview-image-generation")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
