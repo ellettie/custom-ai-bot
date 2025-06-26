@@ -21,33 +21,38 @@ class ReplyButton(discord.ui.Button):
             emoji = "💬",
             style = discord.ButtonStyle.primary
         )
-        self.history = history
+        self.history: bytes = myutils.compress_history(history)
         
     async def callback(self, interaction: discord.Interaction):
         modal = ReplyModal(
             original_itx=interaction,
-            history=self.history.copy()
+            history=self.history
         )
         await interaction.response.send_modal(modal)
 
 class ReplyView(discord.ui.View):
-    def __init__(self, *, button: ReplyButton):
+    def __init__(self, *, button: ReplyButton, bot: commands.Bot):
         super().__init__(timeout=Config.BOTTON_TIMEOUT)
         self.button = button
         self.add_item(button)
         self.message: Optional[discord.WebhookMessage] = None
+        self.bot = bot
         
     async def on_timeout(self):
         self.button.disabled = True
         if self.message:
-            try:
-                await self.message.edit(view=None)
-            except Exception as e:
-                print(f"メッセージ編集エラー: {e}")
+            channel = await self.bot.fetch_channel(self.message.channel.id)
+            if isinstance(channel, discord.TextChannel):
+                message = await channel.fetch_message(self.message.id)
+                try:
+                    await message.edit(view=None)
+                    self.button.history = b''
+                except Exception as e:
+                    print(f"メッセージ編集エラー: {e}")
 
 
 class ReplyModal(discord.ui.Modal, title='AIに返信'):
-    def __init__(self, original_itx: discord.Interaction, history: list[dict]):
+    def __init__(self, original_itx: discord.Interaction, history: bytes):
         super().__init__()
         self.original_itx = original_itx
         self.history = history
@@ -60,13 +65,14 @@ class ReplyModal(discord.ui.Modal, title='AIに返信'):
 
     async def on_submit(self, ctx: discord.Interaction):
         await ctx.response.defer(thinking=True)
+        history = myutils.decompress_history(self.history)
         try:           
             user_message = self.reply_text.value
-            response, input_token, output_token = await gemini.generate_text([{"text": f"{ctx.user.display_name}: {user_message}"}], self.history)
+            response, input_token, output_token = await gemini.generate_text([{"text": f"{ctx.user.display_name}: {user_message}"}], history)
             logger.info(f"{ctx.id}: {{input_token: {input_token}, output_token: {output_token}}}")
             
             # ★ 修正点: 次の応答のために、新しいプロンプト(user_message)を渡す
-            await self.cog._send_response(ctx, user_prompt=user_message, response=response, history=self.history)
+            await self.cog._send_response(ctx, user_prompt=user_message, response=response, history=history)
 
         except gemini.errors.APIError as e:
             await ctx.followup.send(embed=myutils.get_error_embed(gemini.get_error_message(e)))
@@ -81,7 +87,6 @@ class ReplyModal(discord.ui.Modal, title='AIに返信'):
 class ChatCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
     # ★ 修正点: headerの代わりにuser_promptを受け取るように変更
     async def _send_response(self, ctx: discord.Interaction, user_prompt: str, response: str, history: Optional[list[dict]]=None, view_tokens: bool = False,
                              input_token: Optional[int] = None, output_token: Optional[int] = None,
@@ -91,7 +96,8 @@ class ChatCog(commands.Cog):
         header = f"**{ctx.user.display_name}**: {user_prompt}\n\n"
         if history is None:
             history = []
-        history.insert(0, {"user": header[:-2], "ai": response})
+        response_for_hist = response.split(Config.RESPONSE_SEPARATOR)[0]
+        history.insert(0, {"user": header[:-2], "ai": response_for_hist})
         if len(history) > 10:
             history.pop()
         logger.debug(history)
@@ -109,7 +115,7 @@ class ChatCog(commands.Cog):
                 embed.set_footer(text=f"input_token: {input_token} output_token: {output_token}")
 
             # ★ 修正点: user_promptもViewに渡す
-            view = ReplyView(button=ReplyButton(history=history)) if is_last_chunk else discord.utils.MISSING
+            view = ReplyView(button=ReplyButton(history=history), bot=self.bot) if is_last_chunk else discord.utils.MISSING
 
             if i == 0:
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar) # type: ignore

@@ -6,6 +6,7 @@ from io import BytesIO
 from PIL import Image
 import mimetypes
 import tempfile
+from .config import Config
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 MODEL = os.environ.get("MODEL", "gemini-2.5-flash")
@@ -134,7 +135,7 @@ def add_citations(response) -> str:
     footnotes = ", ".join(f"[{n}]({url})" for n, url in enumerate(links, 1))
 
     # 好きな見出しに変えて OK
-    separator = "\n\n**—— 参考リンク ——**\n"
+    separator = Config.RESPONSE_SEPARATOR
     return f"{text}{separator}{footnotes}"
 
 

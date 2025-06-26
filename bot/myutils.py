@@ -2,7 +2,7 @@ import discord
 import google.genai
 import PIL
 from .config import Config
-import os
+import zlib, json
 import sys
 import time
 import logging
@@ -78,3 +78,9 @@ def print_banner(bot, start_ts: float) -> None:
     ]
     for key, val in rows:
         print(f" {key:<10} : {GREY}{val}{RESET}")
+        
+def compress_history(history: list[dict]) -> bytes:
+    return zlib.compress(json.dumps(history).encode('utf-8'))
+
+def decompress_history(data: bytes) -> list[dict]:
+    return json.loads(zlib.decompress(data).decode('utf-8'))
