@@ -21,12 +21,12 @@ class ReplyButton(discord.ui.Button):
             emoji = "💬",
             style = discord.ButtonStyle.primary
         )
-        self.history = history
+        self.history: bytes = myutils.compress_history(history)
         
     async def callback(self, interaction: discord.Interaction):
         modal = ReplyModal(
             original_itx=interaction,
-            history=self.history.copy()
+            history=self.history
         )
         await interaction.response.send_modal(modal)
 
@@ -42,12 +42,13 @@ class ReplyView(discord.ui.View):
         if self.message:
             try:
                 await self.message.edit(view=None)
+                self.button.history = b''
             except Exception as e:
                 print(f"メッセージ編集エラー: {e}")
 
 
 class ReplyModal(discord.ui.Modal, title='AIに返信'):
-    def __init__(self, original_itx: discord.Interaction, history: list[dict]):
+    def __init__(self, original_itx: discord.Interaction, history: bytes):
         super().__init__()
         self.original_itx = original_itx
         self.history = history
@@ -60,13 +61,14 @@ class ReplyModal(discord.ui.Modal, title='AIに返信'):
 
     async def on_submit(self, ctx: discord.Interaction):
         await ctx.response.defer(thinking=True)
+        history = myutils.decompress_history(self.history)
         try:           
             user_message = self.reply_text.value
-            response, input_token, output_token = await gemini.generate_text([{"text": f"{ctx.user.display_name}: {user_message}"}], self.history)
+            response, input_token, output_token = await gemini.generate_text([{"text": f"{ctx.user.display_name}: {user_message}"}], history)
             logger.info(f"{ctx.id}: {{input_token: {input_token}, output_token: {output_token}}}")
             
             # ★ 修正点: 次の応答のために、新しいプロンプト(user_message)を渡す
-            await self.cog._send_response(ctx, user_prompt=user_message, response=response, history=self.history)
+            await self.cog._send_response(ctx, user_prompt=user_message, response=response, history=history)
 
         except gemini.errors.APIError as e:
             await ctx.followup.send(embed=myutils.get_error_embed(gemini.get_error_message(e)))
@@ -91,7 +93,8 @@ class ChatCog(commands.Cog):
         header = f"**{ctx.user.display_name}**: {user_prompt}\n\n"
         if history is None:
             history = []
-        history.insert(0, {"user": header[:-2], "ai": response})
+        response_for_hist = response.split(Config.RESPONSE_SEPARATOR)[0]
+        history.insert(0, {"user": header[:-2], "ai": response_for_hist})
         if len(history) > 10:
             history.pop()
         logger.debug(history)

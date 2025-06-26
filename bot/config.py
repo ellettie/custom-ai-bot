@@ -64,3 +64,5 @@ class Config:
     VERSION = "0.2.3"
     REPO_URL  = "https://github.com/ellettie/custom-ai-bot"
     AUTHOR    = "ellettie"
+    
+    RESPONSE_SEPARATOR = "\n\n**—— 参考リンク ——**\n"
