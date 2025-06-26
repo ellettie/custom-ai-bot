@@ -31,20 +31,24 @@ class ReplyButton(discord.ui.Button):
         await interaction.response.send_modal(modal)
 
 class ReplyView(discord.ui.View):
-    def __init__(self, *, button: ReplyButton):
+    def __init__(self, *, button: ReplyButton, bot: commands.Bot):
         super().__init__(timeout=Config.BOTTON_TIMEOUT)
         self.button = button
         self.add_item(button)
         self.message: Optional[discord.WebhookMessage] = None
+        self.bot = bot
         
     async def on_timeout(self):
         self.button.disabled = True
         if self.message:
-            try:
-                await self.message.edit(view=None)
-                self.button.history = b''
-            except Exception as e:
-                print(f"メッセージ編集エラー: {e}")
+            channel = await self.bot.fetch_channel(self.message.channel.id)
+            if isinstance(channel, discord.TextChannel):
+                message = await channel.fetch_message(self.message.id)
+                try:
+                    await message.edit(view=None)
+                    self.button.history = b''
+                except Exception as e:
+                    print(f"メッセージ編集エラー: {e}")
 
 
 class ReplyModal(discord.ui.Modal, title='AIに返信'):
@@ -83,7 +87,6 @@ class ReplyModal(discord.ui.Modal, title='AIに返信'):
 class ChatCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
     # ★ 修正点: headerの代わりにuser_promptを受け取るように変更
     async def _send_response(self, ctx: discord.Interaction, user_prompt: str, response: str, history: Optional[list[dict]]=None, view_tokens: bool = False,
                              input_token: Optional[int] = None, output_token: Optional[int] = None,
@@ -112,7 +115,7 @@ class ChatCog(commands.Cog):
                 embed.set_footer(text=f"input_token: {input_token} output_token: {output_token}")
 
             # ★ 修正点: user_promptもViewに渡す
-            view = ReplyView(button=ReplyButton(history=history)) if is_last_chunk else discord.utils.MISSING
+            view = ReplyView(button=ReplyButton(history=history), bot=self.bot) if is_last_chunk else discord.utils.MISSING
 
             if i == 0:
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar) # type: ignore
