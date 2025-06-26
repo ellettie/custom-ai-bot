@@ -61,7 +61,7 @@ class Config:
 │\__|  \__|\______|      \_______/  \______/   \__|            │
 └──────────────────────────────────────────────────────────────┘
 """
-    VERSION = "0.2.3"
+    VERSION = "0.2.5"
     REPO_URL  = "https://github.com/ellettie/custom-ai-bot"
     AUTHOR    = "ellettie"
     
