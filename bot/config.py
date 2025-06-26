@@ -61,14 +61,8 @@ class Config:
 │\__|  \__|\______|      \_______/  \______/   \__|            │
 └──────────────────────────────────────────────────────────────┘
 """
-<<<<<<< develop
     VERSION = "0.2.5"
     REPO_URL  = "https://github.com/ellettie/custom-ai-bot"
     AUTHOR    = "ellettie"
     
     RESPONSE_SEPARATOR = "\n\n**—— 参考リンク ——**\n"
-=======
-    VERSION = "0.2.4"
-    REPO_URL  = "https://github.com/ellettie/custom-ai-bot"
-    AUTHOR    = "ellettie"
->>>>>>> main
