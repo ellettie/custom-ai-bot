@@ -56,7 +56,9 @@ GREY   = rgb(180, 180, 180)
 RESET  = "\x1b[0m"
 
 def print_banner(bot, start_ts: float) -> None:
-    print(f"{LOGO}{Config.LOGO}")
+    lines = Config.LOGO.split("\n")
+    for line in lines:
+        print(f"{LOGO}{line}")
 
     rows = [
         (f"{LOGO}version{RESET}",     Config.VERSION),
