@@ -11,8 +11,8 @@ class ColorLogFormatter(logging.Formatter):
     PURPLE = "\x1b[38;2;170;120;255m"
     """ログレベルに応じてコンソール出力に色を付けるFormatter"""
     LOG_COLORS = {
-        logging.DEBUG: "\x1b[38;2;150;150;150m",  # Grey
-        logging.INFO: "\x1b[38;2;100;150;255m",  # Blue
+        logging.DEBUG: "\x1b[38;2;100;150;255m",  # Blue
+        logging.INFO: "\x1b[38;2;0;255;150m",  # Green
         logging.WARNING: "\x1b[38;2;255;255;0m",   # Yellow
         logging.ERROR: "\x1b[38;2;255;100;100m", # Red
         logging.CRITICAL: "\x1b[31;1m", # Bold Red
