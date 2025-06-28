@@ -5,7 +5,6 @@ import logging
 import time
 from .config import Config
 from . import myutils
-from .spinner import Spinner
 
 # --- ロガー取得 (ハンドラは run.py で設定) ---
 logger = logging.getLogger(__name__)
@@ -21,8 +20,6 @@ class CUSTOM_AI_BOT(commands.Bot):
             member_cache_flags=member_cache_flags,
             max_messages=None
         )
-        self.spinner = Spinner()
-        self.spinner.start()
         self.start_ts = time.perf_counter()
         self.guild_id = Config.GUILD_ID
 
@@ -62,9 +59,9 @@ bot = CUSTOM_AI_BOT()
 
 @bot.event
 async def on_ready() -> None:
-    bot.spinner.stop()
     myutils.print_banner(bot, bot.start_ts)
     print("Bot is ready!")
 
 def run(level=logging.WARNING):
-    bot.run(Config.TOKEN, log_level=level)  # type: ignore
+    # ログハンドラをrun.pyで一元管理するため、discord.pyのデフォルトハンドラを無効化
+    bot.run(Config.TOKEN, log_handler=None, log_level=level)  # type: ignore
