@@ -1,11 +1,12 @@
 import discord
 import google.genai
 import PIL
-from .config import Config
-import zlib, json
+import zlib
+import json
 import sys
 import time
 import logging
+from .config import Config
 
 def split_message(text, max_length=1900):
     if len(text) <= max_length:
@@ -56,7 +57,9 @@ GREY   = rgb(180, 180, 180)
 RESET  = "\x1b[0m"
 
 def print_banner(bot, start_ts: float) -> None:
-    print(f"{LOGO}{Config.LOGO}")
+    lines = Config.LOGO.split("\n")
+    for line in lines:
+        print(f"{LOGO}{line}")
 
     rows = [
         (f"{LOGO}version{RESET}",     Config.VERSION),

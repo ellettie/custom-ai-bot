@@ -1,6 +1,5 @@
 import discord
 import os
-import importlib.metadata as m
 
 class Config:
     GUILD_ID = int(os.environ.get("GUILD_ID", 0))
@@ -39,7 +38,8 @@ class Config:
         colour=EMBED_SET["help"]["colour"],
     )
     BOTTON_TIMEOUT = 21600.0
-    LOGO = r"""┌──────────────────────────────────────────────────────────────┐
+    LOGO = r"""
+┌──────────────────────────────────────────────────────────────┐
 │ ██████\  ██\   ██\  ██████\ ████████\  ██████\  ██\      ██\ │
 │██  __██\ ██ |  ██ |██  __██\\__██  __|██  __██\ ███\    ███ |│
 │██ /  \__|██ |  ██ |██ /  \__|  ██ |   ██ /  ██ |████\  ████ |│

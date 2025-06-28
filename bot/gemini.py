@@ -96,7 +96,7 @@ async def generate_text(parts: list[dict], history=None):
     )
     generate_content_config = types.GenerateContentConfig(
         # tools=[grounding_tool, url_context_tool],
-        tools=[grounding_tool],
+        tools=[grounding_tool, url_context_tool],
         response_mime_type="text/plain",
         system_instruction=[
             types.Part.from_text(text="""あなたは優秀なAIアシスタントです。回答は指定がない限り日本語でしてください。
