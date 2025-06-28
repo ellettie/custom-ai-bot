@@ -4,12 +4,14 @@ import os
 class Config:
     GUILD_ID = int(os.environ.get("GUILD_ID", 0))
     TOKEN= os.environ.get("TOKEN", "")
-    ALLOWED_MIME: set[str] = {
+    ALLOWED_IMAGE_MIME: set[str] = {
         "image/png", 
         "image/jpeg", 
         "image/webp",
         "image/heic", 
         "image/heif",
+    }
+    ALLOWED_AUDIO_MIME: set[str] = {
         "audio/vnd.wave",  
         "audio/wav", "audio/x-wav",
         "audio/mpeg",       

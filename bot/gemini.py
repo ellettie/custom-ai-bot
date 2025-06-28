@@ -25,27 +25,7 @@ def save_image_to_temp(inline_data) -> str:
         os.close(fd)
     return path
 
-async def generate_image(prompt: str):
-    response = await client.aio.models.generate_content(
-        model=IMAGE_MODEL,
-        contents=(prompt),
-        config=types.GenerateContentConfig(
-            response_modalities=["TEXT", "IMAGE"],
-        )
-    )
-    input_token = getattr(response.usage_metadata, "prompt_token_count", None)
-    output_token = getattr(response.usage_metadata, "candidates_token_count", None)
-    image_path = None
-    text = ""
-    for part in response.candidates[0].content.parts: # type: ignore
-        if part.text is not None:
-            text = part.text
-        if part.inline_data and part.inline_data.data:
-            image_path = save_image_to_temp(part.inline_data)
-            break
-    return image_path, text, input_token, output_token
-
-async def generate_text(parts: list[dict], history=None):
+def create_part_objs(parts: list[dict]) -> list[types.Content]:
     """
     parts = [
         {"file_data": {"mime_type": file mime type, "data": file byte data}},
@@ -68,6 +48,31 @@ async def generate_text(parts: list[dict], history=None):
             parts=part_objs,
         )
     ]
+    return contents
+
+async def generate_image(parts: list[dict]):
+    contents = create_part_objs(parts)
+    response = await client.aio.models.generate_content(
+        model=IMAGE_MODEL,
+        contents=contents, # type: ignore
+        config=types.GenerateContentConfig(
+            response_modalities=["TEXT", "IMAGE"],
+        )
+    )
+    input_token = getattr(response.usage_metadata, "prompt_token_count", None)
+    output_token = getattr(response.usage_metadata, "candidates_token_count", None)
+    image_path = None
+    text = ""
+    for part in response.candidates[0].content.parts: # type: ignore
+        if part.text is not None:
+            text = part.text
+        if part.inline_data and part.inline_data.data:
+            image_path = save_image_to_temp(part.inline_data)
+            break
+    return image_path, text, input_token, output_token
+
+async def generate_text(parts: list[dict], history=None):
+    contents = create_part_objs(parts)
     if history is not None:
         for chat in history:
             contents.insert(
@@ -95,7 +100,6 @@ async def generate_text(parts: list[dict], history=None):
         url_context=types.UrlContext()
     )
     generate_content_config = types.GenerateContentConfig(
-        # tools=[grounding_tool, url_context_tool],
         tools=[grounding_tool, url_context_tool],
         response_mime_type="text/plain",
         system_instruction=[

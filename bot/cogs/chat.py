@@ -139,7 +139,7 @@ class ChatCog(commands.Cog):
         file_to_resend: Optional[discord.File] = None
 
         if file:
-            if file.content_type not in Config.ALLOWED_MIME:
+            if file.content_type not in Config.ALLOWED_IMAGE_MIME and file.content_type not in Config.ALLOWED_AUDIO_MIME:
                 return await ctx.followup.send(embed=myutils.get_error_embed("サポートされていないファイル形式です"), ephemeral=True)
             file_to_resend = await file.to_file()
             parts.insert(0, {"file_data": {"mime_type": file.content_type, "data": await file.read()}})
@@ -160,24 +160,48 @@ class ChatCog(commands.Cog):
             logger.exception(f"{ctx.id} : /ask raised an Exception. {e}")
 
     @app_commands.command(name="image", description="画像を生成")
-    @describe(prompt="生成する画像の説明", view_token="入出力トークンを表示する")
-    async def image(self, ctx: discord.Interaction, prompt: str, view_token: bool = False):
+    @describe(prompt="生成する画像の説明", file="ファイルを添付 (画像のみ)", file2="追加のファイルを添付 (画像のみ)", view_token="入出力トークンを表示する")
+    async def image(
+        self, 
+        ctx: discord.Interaction, 
+        prompt: str, 
+        file: Optional[discord.Attachment] = None, 
+        file2: Optional[discord.Attachment] = None, 
+        view_token: bool = False
+        ):
         if len(prompt) > Config.MAX_PROMPT_LEN:
             return await ctx.response.send_message(embed=myutils.get_error_embed("プロンプトが長すぎます"), ephemeral=True)
         
         await ctx.response.defer(thinking=True)
+        parts: list[dict] = [{"text": prompt}]
+        file_to_resends: Optional[list[discord.File]] = []
+
+        if file2:
+            if file2.content_type not in Config.ALLOWED_IMAGE_MIME:
+                return await ctx.followup.send(embed=myutils.get_error_embed("サポートされていないファイル形式です"), ephemeral=True)
+            file_to_resends.insert(0, await file2.to_file())
+            parts.insert(0, {"file_data": {"mime_type": file2.content_type, "data": await file2.read()}})
+        if file:
+            if file.content_type not in Config.ALLOWED_IMAGE_MIME:
+                return await ctx.followup.send(embed=myutils.get_error_embed("サポートされていないファイル形式です"), ephemeral=True)
+            file_to_resends.insert(0, await file.to_file())
+            parts.insert(0, {"file_data": {"mime_type": file.content_type, "data": await file.read()}})
         try:
-            path, text, input_token, output_token = await gemini.generate_image(prompt)
+            path, text, input_token, output_token = await gemini.generate_image(parts)
             logger.info(f"{ctx.id}: {{input_token: {input_token}, output_token: {output_token}}}")
 
             if path:
                 filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-                file = discord.File(path, filename)
+                output_file = discord.File(path, filename)
                 embed = discord.Embed(title=prompt, description=text, colour=Config.EMBED_SET["image"]["colour"])
                 embed.set_image(url=f"attachment://{filename}")
                 if view_token:
                     embed.set_footer(text=f"input_token: {input_token} output_token: {output_token}")
-                await ctx.followup.send(embed=embed, file=file)
+                if len(file_to_resends) > 0:
+                    file_to_resends.append(output_file)
+                    await ctx.followup.send(embed=embed, files=file_to_resends)
+                else:
+                    await ctx.followup.send(embed=embed, file=output_file)
                 os.remove(path)
             else:
                 await ctx.followup.send(embed=myutils.get_error_embed("画像の生成に失敗しました。"))
