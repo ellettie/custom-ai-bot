@@ -1,4 +1,7 @@
-import sys, itertools, time, threading
+import sys
+import itertools
+import time
+import threading
 
 SPINNER_FRAMES = "⠋⠙⠸⠴⠦⠧⠇⠏"
 MSG            = " Starting… "

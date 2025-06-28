@@ -1,11 +1,12 @@
 import discord
 import google.genai
 import PIL
-from .config import Config
-import zlib, json
+import zlib
+import json
 import sys
 import time
 import logging
+from .config import Config
 
 def split_message(text, max_length=1900):
     if len(text) <= max_length:

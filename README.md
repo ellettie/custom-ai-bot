@@ -31,11 +31,13 @@
 2. 「OAuth2」→「OAuth2 URL Generator」
 3. 「Scopes」で「bot」と「applications.commands」をチェック
 4. 「Bot Permissions」で以下の権限をチェック：
-   - Send Messages（メッセージ送信）
+   - View Channels
+   - Send Messages
    - Send Messages in Threads
-   - Use Slash Commands（スラッシュコマンド使用）
-   - Attach Files（ファイル添付）
-   - Embed Links（埋め込みリンク）
+   - Manage Messages
+   - Embed Links
+   - Attach Files
+   - Read Message History
 5. 生成されたURLをコピー
 
 #### 1.3 BotをDiscordサーバーに招待
